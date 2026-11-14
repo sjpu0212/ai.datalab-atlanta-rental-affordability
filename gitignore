@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+.DS_Store
+
+# Data the pipeline produces: regenerate it by running the scripts (see README), don't commit it.
+# The folders themselves are kept with .gitkeep placeholders.
+data/*.csv
+data/redfin_rentals/*.csv
+data/redfin_rentals/redfin_progress/*
+!data/redfin_rentals/redfin_progress/.gitkeep
+data/model/*
+!data/model/.gitkeep
+
+# Census income downloads in data/census_income/ ARE committed (public Census Bureau data), so the project runs out of the box.

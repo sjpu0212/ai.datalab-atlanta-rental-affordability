@@ -1,0 +1,12 @@
+pandas
+beautifulsoup4
+requests
+scikit-learn
+matplotlib
+playwright
+playwright-stealth>=2.0
+
+# Needed by SiteLine's scorer (it is installed separately with `pip install -e ".[geo]"`)
+numpy
+shapely
+scipy

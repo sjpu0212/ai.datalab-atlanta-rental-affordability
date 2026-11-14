@@ -1,0 +1,75 @@
+{
+  "trained_at": "2026-11-13T19:41:55",
+  "n_properties": 2738,
+  "group_by": "building",
+  "min_rent": 580.0,
+  "max_rent": 7110.0,
+  "unit_basis": "min",
+  "has_unit_features": true,
+  "best_params": {
+    "n_neighbors": 12,
+    "w_score": 0.5,
+    "w_zip": 0.0,
+    "w_unit": 1.0,
+    "w_type": 0.0,
+    "aggregate": "trimmed"
+  },
+  "cv_mean_by_model": {
+    "all_robust": {
+      "rmse": 694.9421,
+      "mae": 465.6501,
+      "medae": 312.4958,
+      "median_ape": 0.1549,
+      "r2": 0.6395
+    },
+    "full": {
+      "rmse": 1125.8122,
+      "mae": 833.5292,
+      "medae": 652.7508,
+      "median_ape": 0.3036,
+      "r2": 0.0551
+    },
+    "full_robust": {
+      "rmse": 1167.2651,
+      "mae": 808.0357,
+      "medae": 547.9111,
+      "median_ape": 0.2841,
+      "r2": -0.0156
+    },
+    "location_only": {
+      "rmse": 1128.9642,
+      "mae": 841.0022,
+      "medae": 662.1175,
+      "median_ape": 0.3131,
+      "r2": 0.05
+    },
+    "location_zip": {
+      "rmse": 1130.3096,
+      "mae": 836.9961,
+      "medae": 641.2125,
+      "median_ape": 0.3053,
+      "r2": 0.0481
+    },
+    "location_zip_robust": {
+      "rmse": 1159.2235,
+      "mae": 809.7498,
+      "medae": 562.8111,
+      "median_ape": 0.2838,
+      "r2": -0.0018
+    },
+    "mean_baseline": {
+      "rmse": 1160.916,
+      "mae": 864.403,
+      "medae": 699.711,
+      "median_ape": 0.344,
+      "r2": -0.0045
+    },
+    "units_robust": {
+      "rmse": 703.8953,
+      "mae": 470.4172,
+      "medae": 305.7625,
+      "median_ape": 0.1567,
+      "r2": 0.6295
+    }
+  }
+}
