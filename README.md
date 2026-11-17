@@ -1,8 +1,23 @@
 # Atlanta Rental Affordability: data pipeline
 
 Builds the dataset for the project *Mapping the Affordability of Rental Properties in Atlanta* (Emory Center for AI
-Learning, Group 17): every Redfin rental listing in Atlanta, scored with a LIHTC "desirability" score and joined to
+Learning): every Redfin rental listing in Atlanta, scored with a LIHTC "desirability" score and joined to
 census-tract median household income.
+
+## Team
+
+Emory AI.DataLab. This tool was developed by Songjie Pu. Additional contributions were made by Joshua Velasquez and Yanqi Li.
+
+## Acknowledgements and disclaimer
+
+The LIHTC scores come from [SiteLine](https://kmcalist682336.github.io/sitelineLIHTC/), an ATL Metro Area LIHTC scorer and
+an InvestATL & Emory collaboration that computes the location-based criteria of Georgia's 2024-2025 Qualified Allocation
+Plan ([source](https://github.com/kmcalist682336/SitelineLIHTCStartUp)). Income data are American Community Survey estimates and boundaries come from
+TIGERweb, both from the U.S. Census Bureau; map tiles are (c) OpenStreetMap contributors.
+
+Everything here is a model estimate for research. Predicted rents are not quotes or rental advice, affordability is a
+census-tract average and says nothing about any one household, and, as SiteLine itself says, the LIHTC scores are
+guidance, not ground truth, and should be checked by a qualified professional.
 
 ## Repository layout
 
@@ -11,6 +26,7 @@ redfin_scraper.py                      Step 1: scrape Redfin rentals  -> data/re
 siteline_scorer.py                     Step 2: add SiteLine LIHTC scores -> data/redfin_rentals_lihtc_scores.csv
 income.py                              Step 3: add tract income from the local census file -> data/atlanta_rentals_final.csv
 knn_model.py                           Step 4: K-nearest-neighbors rent model: cross-validate it, predict new properties
+rent_map.py                            Step 5: interactive heat map of predicted rent -> data/model/rent_heatmap.html
 requirements.txt
 data/
   redfin_rentals/                      every scrape, saved as redfin_atlanta_rentals_<YYYY-MM-DD_HHMM>.csv
@@ -47,6 +63,7 @@ python siteline_scorer.py       # seconds
 python income.py                # uses the newest file in data/census_income/
 python knn_model.py train        # cross-validate the rent model and save its tuned settings
 python knn_model.py predict --lat 33.7660 --lon -84.3491 --zip 30307      # or --property "name or address"
+python rent_map.py               # build the interactive map (needs the tuned settings from `knn_model.py train`)
 ```
 
 Useful options for the scraper: `--max-pages 3` (test run), `--headed` (visible browser, helps if blocked),
@@ -90,6 +107,52 @@ kept rent range, not the whole market.
 `predict` scores a new location with SiteLine, finds its nearest listings, and reports the predicted rent and what
 household income is needed to afford it. It accepts coordinates, or a property name or address (looked up in the
 dataset first, then geocoded, which needs internet).
+
+## The rent map
+
+`rent_map.py` writes one web page, `data/model/rent_heatmap.html`; open it in a browser (it loads the map tiles and the
+Leaflet library from the internet). CARTO's clean basemaps now need a free API key (without one, tiles are stamped
+"API KEY REQUIRED"): get one at <https://carto.com/basemaps/apikey/> and run `python rent_map.py --carto-key YOUR_KEY`. Without
+a key the script falls back to OpenStreetMap tiles. It lays a grid of 500 m cells over the area your listings cover, drops cells more
+than 1.5 km from any listing (the model has nothing to learn from there), scores each cell with SiteLine, and uses the
+tuned model to predict the rent of every cell for every combination of bedrooms, floor area and property type. The page
+stores those predictions, so no server is needed: change bedrooms, floor area or type and the map recolors. Hover a cell
+for the predicted rent, the household income needed at the 30% rule, the tract's median income, and how far the nearest
+listing is. Cells far from listings are drawn paler. The City of Atlanta's limits are drawn as an outline (downloaded once from the Census Bureau, with the city's own GIS as a
+backup, and cached in `data/model/atlanta_boundary.geojson`; toggle it in the page). Options: `--cell-km`, `--max-dist-km`,
+`--clip-to-city` (drop cells outside the city), `--boundary city.geojson` (use your own outline and clip to it),
+`--no-outline`, `--sqft-step`. SiteLine scores for the grid are cached in `data/model/grid_scores.csv`, so only the
+first run is slow. Rerun the script after retraining or after a new scrape. The page contains Redfin-derived data, so
+treat it like the data files (it is git-ignored with the rest of `data/model/`).
+
+**Search, pin, affordability and theme.** The panel has a *Check a specific place* box that accepts a listing's name or address, an
+address anywhere in Atlanta, or `lat, lon`, plus a *Drop a pin on the map* button (press it, click the map, then drag the pin to move it). It marks the spot and shows the model's estimate for the unit currently
+selected (a listing found by name also sets bedrooms, size and type to that listing's own), the income needed, and
+whether the rent passes the threshold. The estimate is blended from the surrounding grid cells, so for the exact model
+output of one address use `python knn_model.py predict`. Listing names are searched inside the page; other addresses are
+sent from your browser to OpenStreetMap's Nominatim service (disable with `--no-geocoder`). *Show: Rent as share of
+income* recolors the map by a year of predicted rent divided by the tract's median household income, with a slider for
+the share above which rent is unaffordable (default 30%): red above it, blue below it, gray where the census gives no
+income. Income for every tract comes from the whole table in `data/census_income/`. A *Light/Dark* button in the panel
+header switches the theme (it follows your system until you use it, then remembers your choice).
+Census tract outlines (a checkbox under *Map display*) come from the Census Bureau's TIGERweb service, are downloaded once for the mapped area, and are cached in `data/model/tract_boundaries.geojson` (git-ignored); `--no-tracts` skips them.
+
+*Show: LIHTC score* colors each cell by SiteLine's score for that location (out of 46), the same score the model uses as a predictor; it depends on the place only, so the bedroom, size and type controls hide in that view.
+
+## Publishing the map on GitHub Pages
+
+The scraped Redfin listings must not be published, so the page you publish is a separate build:
+
+```
+python rent_map.py --public
+```
+
+`--public` leaves out every individual listing (no dots, addresses or names, and no listing search), refuses any CARTO API
+key (it uses OpenStreetMap tiles, which need none, and ignores a `CARTO_API_KEY` environment variable), writes to
+`docs/index.html`, and then checks the file for listing addresses and key text. Commit `docs/index.html` and push, then in
+the repository go to Settings -> Pages, choose "Deploy from a branch", branch `main`, folder `/docs`. The site appears at
+`https://<username>.github.io/<repository>/`. The normal build (`python rent_map.py`, written to `data/model/`) contains the
+listings and stays on your computer.
 
 ## Notes
 
